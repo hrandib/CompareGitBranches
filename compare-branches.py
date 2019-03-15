@@ -49,6 +49,7 @@ class Branch:
         self.patchIdDict    = {} # for fast search
         self.commitList     = []  # list of git commit ids
         self.commitObjDict  = {}  # list of gitCommit objects
+        self.commitSubjDict = {}  # list of subjects
         self.missingDict    = {} # list of missing commitIDs of this branch
 
     def searchCherryPickID(self, commitID):
@@ -79,6 +80,7 @@ class Branch:
         self.commitList.append(commitID)
         self.commitObjDict[commitID] = commitObj
         self.patchIdDict[patchID]    = commitID
+        self.commitSubjDict[commitSubject] = commitID
 
     def addLogLine(self, logLine):
         commitID      = logLine[:40]
@@ -101,9 +103,9 @@ class Branch:
         elif not 'exactSearch' in globals():
             cmd.append('^' + comparedBranchName)
 
-        # print 'Compared branch log: ' + str(cmd)
+        print 'Compared branch log: ' + str(cmd)
 
-        log = subprocess.check_output(cmd );
+        log = subprocess.check_output(cmd)
 
         self.addGitLog(log)
 
@@ -113,7 +115,13 @@ class Branch:
                 commitID = comparisonDict.get(key)
                 self.missingDict[commitID] = commitID
 
-                # print self.branchName + ': missing: ' + key + ' : ' + commitID
+                print self.branchName + ': missing: ' + key + ' : ' + commitID
+
+    def createMissingDictSubj(self, commitSubjDict):
+        for key in commitSubjDict.keys():
+            if key not in self.commitSubjDict:
+                commitID = commitSubjDict.get(key)
+                self.missingDict[commitID] = commitID
 
     def isCommitInMissingDict(self, commitID):
         if commitID in self.missingDict:
@@ -175,6 +183,9 @@ class Branch:
     def getCommitObjDict(self):
         return self.commitObjDict
 
+    def getCommitSubjDict(self):
+        return self.commitSubjDict
+
 def usage():
         print '''
         Usage:
@@ -214,7 +225,7 @@ except:
 for opt,arg in opts:
     if opt == '-h':
         usage()
-        sys.exit();
+        sys.exit()
     if opt == '-a':
         branchAName = arg
     if opt == '-b':
@@ -251,8 +262,8 @@ branchBObj = Branch(branchBName)
 branchAObj.doComparedBranchLog(branchBName)
 branchBObj.doComparedBranchLog(branchAName)
 
-branchAObj.createMissingDict(branchBObj.getPatchIdDict() )
-branchBObj.createMissingDict(branchAObj.getPatchIdDict() )
+branchAObj.createMissingDictSubj(branchBObj.getCommitSubjDict())
+branchBObj.createMissingDictSubj(branchAObj.getCommitSubjDict())
 
 
 branchAObj.reverseAssignCherryPickIDs(branchBObj.getCommitList(), \
